@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#198754">
+<title>Warung Sembako V1</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f4f6f8;
+  color:#222;
+}
+header{
+  background:#198754;
+  color:white;
+  padding:18px;
+  text-align:center;
+}
+header h1{margin:0;font-size:24px}
+.container{padding:15px;max-width:700px;margin:auto}
+.card{
+  background:white;
+  border-radius:12px;
+  padding:16px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px #0001;
+}
+input,button,select{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:15px;
+}
+button{
+  background:#198754;
+  color:white;
+  border:0;
+  font-weight:bold;
+}
+button.hapus{background:#dc3545}
+button.reset{background:#6c757d}
+.stat{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.stat div{
+  background:#e9f7ef;
+  padding:15px;
+  border-radius:10px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+th,td{
+  padding:9px;
+  border-bottom:1px solid #ddd;
+  text-align:left;
+}
+h2{margin-top:0}
+.profit{color:#198754;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🛒 Warung Sembako V1</h1>
+<p>Catatan stok, penjualan & keuntungan</p>
+</header>
+
+<div class="container">
+
+<div class="stat">
+<div>
+<b>Modal Barang</b>
+<br>Rp <span id="modal">0</span>
+</div>
+<div>
+<b>Keuntungan</b>
+<br><span class="profit">Rp <span id="untung">0</span></span>
+</div>
+</div>
+
+<br>
+
+<div class="card">
+<h2>➕ Tambah Barang</h2>
+
+<input id="nama" placeholder="Nama barang">
+<input id="beli" type="number" placeholder="Harga beli">
+<input id="jual" type="number" placeholder="Harga jual">
+<input id="stok" type="number" placeholder="Jumlah stok">
+
+<button onclick="tambahBarang()">Simpan Barang</button>
+</div>
+
+<div class="card">
+<h2>📦 Daftar Barang</h2>
+
+<table>
+<thead>
+<tr>
+<th>Barang</th>
+<th>Stok</th>
+<th>Jual</th>
+<th>Aksi</th>
+</tr>
+</thead>
+
+<tbody id="daftar"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>🧾 Penjualan</h2>
+
+<select id="pilihBarang"></select>
+<input id="jumlahJual" type="number" placeholder="Jumlah terjual">
+
+<button onclick="jualBarang()">Catat Penjualan</button>
+</div>
+
+<div class="card">
+<h2>📊 Rekap Penjualan</h2>
+
+<p>Total Penjualan:
+<b>Rp <span id="penjualan">0</span></b>
+</p>
+
+<p>Total Keuntungan:
+<b class="profit">Rp <span id="keuntungan">0</span></b>
+</p>
+
+<button class="reset" onclick="resetData()">Reset Semua Data</button>
+</div>
+
+</div>
+
+<script>
+
+let barang = JSON.parse(localStorage.getItem("barangWarung")) || [];
+let penjualan = JSON.parse(localStorage.getItem("penjualanWarung")) || 0;
+let keuntungan = JSON.parse(localStorage.getItem("keuntunganWarung")) || 0;
+
+function rupiah(angka){
+ return Number(angka).toLocaleString("id-ID");
+}
+
+function simpan(){
+ localStorage.setItem("barangWarung",JSON.stringify(barang));
+ localStorage.setItem("penjualanWarung",penjualan);
+ localStorage.setItem("keuntunganWarung",keuntungan);
+}
+
+function tambahBarang(){
+
+ let nama=document.getElementById("nama").value.trim();
+ let beli=Number(document.getElementById("beli").value);
+ let jual=Number(document.getElementById("jual").value);
+ let stok=Number(document.getElementById("stok").value);
+
+ if(!nama || !beli || !jual || stok<0){
+   alert("Lengkapi data barang!");
+   return;
+ }
+
+ barang.push({
+   nama:nama,
+   beli:beli,
+   jual:jual,
+   stok:stok
+ });
+
+ document.getElementById("nama").value="";
+ document.getElementById("beli").value="";
+ document.getElementById("jual").value="";
+ document.getElementById("stok").value="";
+
+ simpan();
+ tampilkan();
+}
+
+function hapusBarang(index){
+
+ if(confirm("Hapus barang ini?")){
+   barang.splice(index,1);
+   simpan();
+   tampilkan();
+ }
+}
+
+function jualBarang(){
+
+ let index=Number(document.getElementById("pilihBarang").value);
+ let jumlah=Number(document.getElementById("jumlahJual").value);
+
+ if(isNaN(index) || !jumlah || jumlah<=0){
+   alert("Pilih barang dan jumlah!");
+   return;
+ }
+
+ if(jumlah>barang[index].stok){
+   alert("Stok tidak cukup!");
+   return;
+ }
+
+ let total=barang[index].jual*jumlah;
+ let untung=(barang[index].jual-barang[index].beli)*jumlah;
+
+ barang[index].stok-=jumlah;
+ penjualan+=total;
+ keuntungan+=untung;
+
+ document.getElementById("jumlahJual").value="";
+
+ simpan();
+ tampilkan();
+
+ alert(
+ "Penjualan berhasil!\n\n"+
+ "Total: Rp "+rupiah(total)+
+ "\nKeuntungan: Rp "+rupiah(untung)
+ );
+}
+
+function tampilkan(){
+
+ let daftar=document.getElementById("daftar");
+ let pilih=document.getElementById("pilihBarang");
+
+ daftar.innerHTML="";
+ pilih.innerHTML="";
+
+ let modal=0;
+
+ barang.forEach((b,i)=>{
+
+   modal+=b.beli*b.stok;
+
+   daftar.innerHTML+=`
+   <tr>
+    <td>${b.nama}</td>
+    <td>${b.stok}</td>
+    <td>Rp ${rupiah(b.jual)}</td>
+    <td>
+     <button class="hapus" onclick="hapusBarang(${i})">
+     Hapus
+     </button>
+    </td>
+   </tr>
+   `;
+
+   pilih.innerHTML+=`
+   <option value="${i}">
+   ${b.nama} - Stok ${b.stok}
+   </option>
+   `;
+ });
+
+ document.getElementById("modal").textContent=rupiah(modal);
+ document.getElementById("untung").textContent=rupiah(keuntungan);
+ document.getElementById("penjualan").textContent=rupiah(penjualan);
+ document.getElementById("keuntungan").textContent=rupiah(keuntungan);
+}
+
+function resetData(){
+
+ if(confirm("Semua data akan dihapus. Lanjutkan?")){
+
+   barang=[];
+   penjualan=0;
+   keuntungan=0;
+
+   simpan();
+   tampilkan();
+ }
+}
+
+tampilkan();
+
+</script>
+
+</body>
+  </html>
